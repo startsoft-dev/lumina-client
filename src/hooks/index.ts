@@ -41,6 +41,9 @@ export {
   useAcceptInvitation,
 } from './useInvitations';
 
+// Role
+export { useUserRole } from './useUserRole';
+
 // Other Hooks
 export { useToast } from './use-toast';
 

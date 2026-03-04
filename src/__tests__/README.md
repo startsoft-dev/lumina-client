@@ -328,6 +328,36 @@ Tests for the `useOwner` hook (`src/hooks/useOwner.js`) that fetches organizatio
 
 ---
 
+### `useUserRole.test.js`
+
+Tests for the `useUserRole` hook (`src/hooks/useUserRole.js`) that resolves the current user's roles in the current organization and provides a `hasRole()` helper. Mocks axios, useOrganization, and useOwner. Uses QueryClientProvider wrapper.
+
+#### Core behavior (8 tests)
+
+| Test | What it verifies |
+|------|--------------------|
+| `should return empty roles when no organization data` | Returns `roles: [], roleIds: []` when org data is null |
+| `should return empty roles when no user in storage` | No match when localStorage has no user |
+| `should resolve a single role for the current user` | Matches user by id, resolves `pivot.role_id` to full role object |
+| `should resolve multiple roles for the current user` | User appearing multiple times in users list (one per role) resolves all roles |
+| `should not include roles from other users` | Only roles for the current user's id are returned |
+| `should fetch roles from the correct API endpoint` | Calls `GET /{org}/roles` |
+| `should not fetch roles when organization slug is null` | Query disabled, no API call |
+| `should report isLoading when org is loading` | `isLoading: true` when useOwner is loading |
+
+#### hasRole (6 tests)
+
+| Test | What it verifies |
+|------|--------------------|
+| `should return true when user has the role by name` | Matches against `role.name` |
+| `should return true when user has the role by slug` | Matches against `role.slug` |
+| `should be case-insensitive` | `'ADMIN'`, `'aDmIn'` both match |
+| `should return false when user does not have the role` | Non-matching role returns `false` |
+| `should return false when roles are not loaded yet` | Returns `false` while loading |
+| `should match any role when user has multiple roles` | `hasRole('admin')` and `hasRole('assistant')` both return `true` |
+
+---
+
 ### `useOrganizationExists.test.js`
 
 Tests for the `useOrganizationExists` hook (`src/hooks/useOrganizationExists.js`) that wraps `useOwner` to provide a boolean existence check.
@@ -390,7 +420,8 @@ Tests for the pre-configured axios instance and `configureApi` function (`src/li
 | Hooks | `useInvitations.test.js` | 15 |
 | Hooks | `use-toast.test.js` | 14 |
 | Hooks | `useOwner.test.js` | 8 |
+| Hooks | `useUserRole.test.js` | 14 |
 | Hooks | `useOrganizationExists.test.js` | 5 |
 | Context | `AuthContext.test.js` | 6 |
 | API Client | `axios.test.js` | 5 |
-| | **Total** | **136** |
+| | **Total** | **150** |
