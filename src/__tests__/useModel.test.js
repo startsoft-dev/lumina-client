@@ -54,13 +54,14 @@ beforeEach(() => {
 // ─── useModelIndex ───────────────────────────────────────────────────────────
 
 describe('useModelIndex', () => {
-  it('should return error state when organization is null', () => {
+  it('should return disabled state when organization is null', () => {
     useOrganization.mockReturnValue(null);
     const { result } = renderHook(() => useModelIndex('users'), { wrapper: createWrapper() });
 
-    expect(result.current.error).toBeTruthy();
-    expect(result.current.error.message).toBe('Organization slug is required');
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('should call api.get with correct base URL', async () => {
@@ -153,20 +154,22 @@ describe('useModelIndex', () => {
 // ─── useModelShow ────────────────────────────────────────────────────────────
 
 describe('useModelShow', () => {
-  it('should return error when organization is null', () => {
+  it('should return disabled state when organization is null', () => {
     useOrganization.mockReturnValue(null);
     const { result } = renderHook(() => useModelShow('users', 1), { wrapper: createWrapper() });
 
-    expect(result.current.error.message).toBe('Organization slug is required');
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 
-  it('should return error when id is null', () => {
+  it('should return disabled state when id is null', () => {
     useOrganization.mockReturnValue('my-org');
     const { result } = renderHook(() => useModelShow('users', null), { wrapper: createWrapper() });
 
-    expect(result.current.error.message).toBe('ID is required for useModelShow');
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 
   it('should call api.get with correct URL for a single resource', async () => {
@@ -375,12 +378,13 @@ describe('useModelDelete', () => {
 // ─── useModelTrashed ─────────────────────────────────────────────────────────
 
 describe('useModelTrashed', () => {
-  it('should return error when organization is null', () => {
+  it('should return disabled state when organization is null', () => {
     useOrganization.mockReturnValue(null);
     const { result } = renderHook(() => useModelTrashed('users'), { wrapper: createWrapper() });
 
-    expect(result.current.error.message).toBe('Organization slug is required');
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 
   it('should GET /org/model/trashed', async () => {
@@ -588,20 +592,22 @@ describe('useNestedOperations', () => {
 // ─── useModelAudit ───────────────────────────────────────────────────────────
 
 describe('useModelAudit', () => {
-  it('should return error when organization is null', () => {
+  it('should return disabled state when organization is null', () => {
     useOrganization.mockReturnValue(null);
     const { result } = renderHook(() => useModelAudit('users', 1), { wrapper: createWrapper() });
 
-    expect(result.current.error.message).toBe('Organization slug is required');
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 
-  it('should return error when id is null', () => {
+  it('should return disabled state when id is null', () => {
     useOrganization.mockReturnValue('my-org');
     const { result } = renderHook(() => useModelAudit('users', null), { wrapper: createWrapper() });
 
-    expect(result.current.error.message).toBe('ID is required for useModelAudit');
-    expect(result.current.isError).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 
   it('should GET /org/model/id/audit', async () => {

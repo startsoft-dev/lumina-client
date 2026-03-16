@@ -2,57 +2,52 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import { useOrganization } from './useOrganization';
 import { extractPaginationFromHeaders } from '../lib/pagination';
+import type { AxiosResponse } from 'axios';
+import type { ModelQueryOptions, QueryResponse, AuditLog, NestedOperation } from '../types';
 
 /**
  * Helper to build query URL with filters, includes, etc.
  */
-function buildQueryUrl(model, organization, options = {}) {
+function buildQueryUrl(model: string, organization: string, options: ModelQueryOptions = {}): string {
   if (!organization) {
     throw new Error('Organization slug is required');
   }
-  
-  // Ensure organization is a valid string (not null, undefined, or empty)
+
   const orgSlug = String(organization).trim();
   if (!orgSlug) {
     throw new Error('Organization slug is required and must be a non-empty string');
   }
-  
+
   let url = `/${orgSlug}/${model}`;
   const params = new URLSearchParams();
-  
-  // Add filters
+
   if (options.filters) {
     Object.entries(options.filters).forEach(([key, value]) => {
       params.append(`filter[${key}]`, value);
     });
   }
-  
-  // Add includes
+
   if (options.includes && options.includes.length > 0) {
     params.append('include', options.includes.join(','));
   }
-  
-  // Add sorts
+
   if (options.sort) {
     params.append('sort', options.sort);
   }
-  
-  // Add fields
+
   if (options.fields && options.fields.length > 0) {
     params.append('fields', options.fields.join(','));
   }
 
-  // Add search
   if (options.search) {
     params.append('search', options.search);
   }
 
-  // Add pagination
   if (options.page) {
-    params.append('page', options.page);
+    params.append('page', String(options.page));
   }
   if (options.perPage || options.per_page) {
-    params.append('per_page', options.perPage || options.per_page);
+    params.append('per_page', String(options.perPage || options.per_page));
   }
 
   const queryString = params.toString();
@@ -61,52 +56,34 @@ function buildQueryUrl(model, organization, options = {}) {
 
 /**
  * Hook to fetch a list of models (index)
- * @param {string} model - Model name (e.g., 'users', 'posts')
- * @param {Object} options - Optional query options { filters, includes, sort, fields, search, page, perPage }
- * @returns {Object} React Query result with data (contains data and pagination), isLoading, error, refetch
  *
  * @example
  * // Simple usage
  * const { data: response } = useModelIndex('users');
  * const users = response?.data || [];
  *
- * // With query options and pagination
- * const { data: response } = useModelIndex('posts', {
+ * // With typed model
+ * const { data: response } = useModelIndex<Post>('posts', {
  *   filters: { status: 'published' },
  *   includes: ['author', 'comments'],
  *   sort: '-created_at',
- *   fields: ['id', 'title', 'content'],
- *   search: 'react',
  *   page: 1,
  *   perPage: 20
  * });
- * const posts = response?.data || [];
- * const pagination = response?.pagination;
+ * const posts = response?.data || []; // Post[]
  */
-export function useModelIndex(model, options = {}) {
+export function useModelIndex<T = Record<string, any>>(model: string, options: ModelQueryOptions = {}) {
   const organization = useOrganization();
 
-  if (!organization) {
-    return {
-      data: null,
-      pagination: null,
-      isLoading: false,
-      error: new Error('Organization slug is required'),
-      isError: true,
-      refetch: () => Promise.resolve({ data: null }),
-    };
-  }
-
-  const url = buildQueryUrl(model, organization, options);
-
-  return useQuery({
+  return useQuery<QueryResponse<T>>({
     queryKey: ['modelIndex', model, organization, options],
     queryFn: async () => {
+      const url = buildQueryUrl(model, organization!, options);
       const response = await api.get(url);
       const pagination = extractPaginationFromHeaders(response);
 
       return {
-        data: response.data,
+        data: response.data as T[],
         pagination,
       };
     },
@@ -116,45 +93,21 @@ export function useModelIndex(model, options = {}) {
 
 /**
  * Hook to fetch a single model (show)
- * @param {string} model - Model name (e.g., 'users', 'posts')
- * @param {string|number} id - Resource ID
- * @param {Object} options - Optional query options { includes, fields }
- * @returns {Object} React Query result with data, isLoading, error, refetch
- * 
+ *
  * @example
  * // Simple usage
  * useModelShow('users', 1)
- * 
- * // With query options
- * useModelShow('posts', 1, {
+ *
+ * // With typed model
+ * useModelShow<Post>('posts', 1, {
  *   includes: ['author', 'comments'],
  *   fields: ['id', 'title', 'content']
  * })
  */
-export function useModelShow(model, id, options = {}) {
+export function useModelShow<T = Record<string, any>>(model: string, id: string | number | null | undefined, options: ModelQueryOptions = {}) {
   const organization = useOrganization();
 
-  if (!organization) {
-    return {
-      data: null,
-      isLoading: false,
-      error: new Error('Organization slug is required'),
-      isError: true,
-      refetch: () => Promise.resolve({ data: null }),
-    };
-  }
-  
-  if (!id) {
-    return {
-      data: null,
-      isLoading: false,
-      error: new Error('ID is required for useModelShow'),
-      isError: true,
-      refetch: () => Promise.resolve({ data: null }),
-    };
-  }
-  
-  return useQuery({
+  return useQuery<T>({
     queryKey: ['modelShow', model, id, organization, options],
     queryFn: async () => {
       const orgSlug = String(organization).trim();
@@ -162,7 +115,6 @@ export function useModelShow(model, id, options = {}) {
         throw new Error('Organization slug is required. Please ensure you are logged in and have selected an organization.');
       }
 
-      // Build query parameters
       const params = new URLSearchParams();
       if (options.includes && options.includes.length > 0) {
         params.append('include', Array.isArray(options.includes) ? options.includes.join(',') : options.includes);
@@ -179,14 +131,13 @@ export function useModelShow(model, id, options = {}) {
         params.append('fields', Array.isArray(options.fields) ? options.fields.join(',') : options.fields);
       }
 
-      // Construct final URL: /{organization}/{model}/{id}?queryParams
       const queryString = params.toString();
       const finalUrl = queryString
         ? `/${orgSlug}/${model}/${id}?${queryString}`
         : `/${orgSlug}/${model}/${id}`;
 
       const response = await api.get(finalUrl);
-      return response.data;
+      return response.data as T;
     },
     enabled: !!organization && !!id && !!String(organization).trim(),
   });
@@ -194,26 +145,25 @@ export function useModelShow(model, id, options = {}) {
 
 /**
  * Hook to update a model
- * @param {string} model - Model name
- * @returns {Object} React Query mutation with mutate, mutateAsync, isLoading, error, isSuccess
+ *
+ * @example
+ * const updatePost = useModelUpdate<Post>('posts');
+ * updatePost.mutate({ id: 1, data: { title: 'Updated' } });
  */
-export function useModelUpdate(model) {
+export function useModelUpdate<T = Record<string, any>>(model: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  
+
   if (!organization) {
     throw new Error('Organization slug is required. All routes must include organization in the URL (e.g., /org-slug/dashboard)');
   }
-  
-  return useMutation({
+
+  return useMutation<T, Error, { id: string | number; data: Partial<T> }>({
     mutationFn: ({ id, data }) => {
-      // Organization is already in the URL path, no need to add as query parameter or in body
       const url = `/${organization}/${model}/${id}`;
-      
-      return api.put(url, data).then((res) => res.data);
+      return api.put(url, data).then((res: AxiosResponse) => res.data);
     },
     onSuccess: () => {
-      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['modelIndex', model] });
       queryClient.invalidateQueries({ queryKey: ['modelShow', model] });
     },
@@ -222,10 +172,12 @@ export function useModelUpdate(model) {
 
 /**
  * Hook to delete a model
- * @param {string} model - Model name
- * @returns {Object} React Query mutation with mutate, mutateAsync, isLoading, error, isSuccess
+ *
+ * @example
+ * const deletePost = useModelDelete<Post>('posts');
+ * deletePost.mutate(postId);
  */
-export function useModelDelete(model) {
+export function useModelDelete<T = Record<string, any>>(model: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -233,15 +185,12 @@ export function useModelDelete(model) {
     throw new Error('Organization slug is required. All routes must include organization in the URL (e.g., /org-slug/dashboard)');
   }
 
-  return useMutation({
+  return useMutation<T, Error, string | number>({
     mutationFn: (id) => {
-      // Organization is already in the URL path, no need to add as query parameter
       const url = `/${organization}/${model}/${id}`;
-
-      return api.delete(url).then((res) => res.data);
+      return api.delete(url).then((res: AxiosResponse) => res.data);
     },
     onSuccess: () => {
-      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['modelIndex', model] });
       queryClient.invalidateQueries({ queryKey: ['modelShow', model] });
     },
@@ -250,18 +199,12 @@ export function useModelDelete(model) {
 
 /**
  * Hook to create a new model
- * @param {string} model - Model name (e.g., 'users', 'posts')
- * @returns {Object} React Query mutation with mutate, mutateAsync, isPending, error, isSuccess
  *
  * @example
- * const createUser = useModelStore('users');
- *
- * createUser.mutate({
- *   name: 'John Doe',
- *   email: 'john@example.com'
- * });
+ * const createUser = useModelStore<User>('users');
+ * createUser.mutate({ name: 'John Doe', email: 'john@example.com' });
  */
-export function useModelStore(model) {
+export function useModelStore<T = Record<string, any>>(model: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -269,13 +212,12 @@ export function useModelStore(model) {
     throw new Error('Organization slug is required. All routes must include organization in the URL (e.g., /org-slug/dashboard)');
   }
 
-  return useMutation({
+  return useMutation<T, Error, Partial<T>>({
     mutationFn: (data) => {
       const url = `/${organization}/${model}`;
-      return api.post(url, data).then((res) => res.data);
+      return api.post(url, data).then((res: AxiosResponse) => res.data);
     },
     onSuccess: () => {
-      // Invalidate related queries to refresh lists
       queryClient.invalidateQueries({ queryKey: ['modelIndex', model] });
       queryClient.invalidateQueries({ queryKey: ['modelShow', model] });
     },
@@ -284,48 +226,26 @@ export function useModelStore(model) {
 
 /**
  * Hook to fetch soft-deleted (trashed) models
- * @param {string} model - Model name (e.g., 'users', 'posts')
- * @param {Object} options - Optional query options { filters, includes, sort, fields, search, page, perPage }
- * @returns {Object} React Query result with data (contains data and pagination), isLoading, error, refetch
  *
  * @example
- * // Simple usage
- * const { data: response } = useModelTrashed('users');
- * const trashedUsers = response?.data || [];
- *
- * // With pagination and search
- * const { data: response } = useModelTrashed('posts', {
+ * const { data: response } = useModelTrashed<Post>('posts', {
  *   search: 'deleted',
  *   page: 1,
  *   perPage: 20,
  *   sort: '-deleted_at'
  * });
- * const trashedPosts = response?.data || [];
- * const pagination = response?.pagination;
+ * const trashedPosts = response?.data || []; // Post[]
  */
-export function useModelTrashed(model, options = {}) {
+export function useModelTrashed<T = Record<string, any>>(model: string, options: ModelQueryOptions = {}) {
   const organization = useOrganization();
 
-  if (!organization) {
-    return {
-      data: null,
-      pagination: null,
-      isLoading: false,
-      error: new Error('Organization slug is required'),
-      isError: true,
-      refetch: () => Promise.resolve({ data: null }),
-    };
-  }
-
-  return useQuery({
+  return useQuery<QueryResponse<T>>({
     queryKey: ['modelTrashed', model, organization, options],
     queryFn: async () => {
-      // Build URL manually for trashed endpoint
       const orgSlug = String(organization).trim();
       let url = `/${orgSlug}/${model}/trashed`;
       const params = new URLSearchParams();
 
-      // Add all query parameters
       if (options.filters) {
         Object.entries(options.filters).forEach(([key, value]) => {
           params.append(`filter[${key}]`, value);
@@ -344,10 +264,10 @@ export function useModelTrashed(model, options = {}) {
         params.append('search', options.search);
       }
       if (options.page) {
-        params.append('page', options.page);
+        params.append('page', String(options.page));
       }
       if (options.perPage || options.per_page) {
-        params.append('per_page', options.perPage || options.per_page);
+        params.append('per_page', String(options.perPage || options.per_page));
       }
 
       const queryString = params.toString();
@@ -357,7 +277,7 @@ export function useModelTrashed(model, options = {}) {
       const pagination = extractPaginationFromHeaders(response);
 
       return {
-        data: response.data,
+        data: response.data as T[],
         pagination,
       };
     },
@@ -367,15 +287,12 @@ export function useModelTrashed(model, options = {}) {
 
 /**
  * Hook to restore a soft-deleted model
- * @param {string} model - Model name
- * @returns {Object} React Query mutation with mutate, mutateAsync, isPending, error, isSuccess
  *
  * @example
- * const restoreUser = useModelRestore('users');
- *
+ * const restoreUser = useModelRestore<User>('users');
  * restoreUser.mutate(userId);
  */
-export function useModelRestore(model) {
+export function useModelRestore<T = Record<string, any>>(model: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -383,13 +300,12 @@ export function useModelRestore(model) {
     throw new Error('Organization slug is required. All routes must include organization in the URL (e.g., /org-slug/dashboard)');
   }
 
-  return useMutation({
+  return useMutation<T, Error, string | number>({
     mutationFn: (id) => {
       const url = `/${organization}/${model}/${id}/restore`;
-      return api.post(url).then((res) => res.data);
+      return api.post(url).then((res: AxiosResponse) => res.data);
     },
     onSuccess: () => {
-      // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['modelIndex', model] });
       queryClient.invalidateQueries({ queryKey: ['modelTrashed', model] });
       queryClient.invalidateQueries({ queryKey: ['modelShow', model] });
@@ -399,15 +315,12 @@ export function useModelRestore(model) {
 
 /**
  * Hook to permanently delete a model (force delete)
- * @param {string} model - Model name
- * @returns {Object} React Query mutation with mutate, mutateAsync, isPending, error, isSuccess
  *
  * @example
- * const forceDeleteUser = useModelForceDelete('users');
- *
+ * const forceDeleteUser = useModelForceDelete<User>('users');
  * forceDeleteUser.mutate(userId);
  */
-export function useModelForceDelete(model) {
+export function useModelForceDelete<T = Record<string, any>>(model: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -415,13 +328,12 @@ export function useModelForceDelete(model) {
     throw new Error('Organization slug is required. All routes must include organization in the URL (e.g., /org-slug/dashboard)');
   }
 
-  return useMutation({
+  return useMutation<T, Error, string | number>({
     mutationFn: (id) => {
       const url = `/${organization}/${model}/${id}/force-delete`;
-      return api.delete(url).then((res) => res.data);
+      return api.delete(url).then((res: AxiosResponse) => res.data);
     },
     onSuccess: () => {
-      // Invalidate trashed queries
       queryClient.invalidateQueries({ queryKey: ['modelTrashed', model] });
     },
   });
@@ -429,11 +341,9 @@ export function useModelForceDelete(model) {
 
 /**
  * Hook to perform nested operations (multi-model transactions)
- * @returns {Object} React Query mutation with mutate, mutateAsync, isPending, error, isSuccess
  *
  * @example
  * const nestedOps = useNestedOperations();
- *
  * nestedOps.mutate({
  *   operations: [
  *     { action: 'create', model: 'blogs', data: { title: 'My Blog' } },
@@ -450,13 +360,12 @@ export function useNestedOperations() {
     throw new Error('Organization slug is required. All routes must include organization in the URL (e.g., /org-slug/dashboard)');
   }
 
-  return useMutation({
+  return useMutation<any[], Error, { operations: NestedOperation[] }>({
     mutationFn: ({ operations }) => {
       const url = `/${organization}/nested-operations`;
-      return api.post(url, { operations }).then((res) => res.data);
+      return api.post(url, { operations }).then((res: AxiosResponse) => res.data);
     },
-    onSuccess: (data, variables) => {
-      // Invalidate queries for all affected models
+    onSuccess: (_data, variables) => {
       const affectedModels = new Set(
         variables.operations.map(op => op.model)
       );
@@ -471,43 +380,15 @@ export function useNestedOperations() {
 
 /**
  * Hook to fetch audit logs for a model instance
- * Note: Requires backend to implement GET /{org}/{model}/{id}/audit endpoint
- * @param {string} model - Model name
- * @param {string|number} id - Resource ID
- * @param {Object} options - Optional query options { page, perPage }
- * @returns {Object} React Query result with data (contains data and pagination), isLoading, error, refetch
  *
  * @example
  * const { data: response } = useModelAudit('users', 1, { page: 1, perPage: 50 });
- * const auditLogs = response?.data || [];
- * const pagination = response?.pagination;
+ * const auditLogs = response?.data || []; // AuditLog[]
  */
-export function useModelAudit(model, id, options = {}) {
+export function useModelAudit(model: string, id: string | number | null | undefined, options: ModelQueryOptions = {}) {
   const organization = useOrganization();
 
-  if (!organization) {
-    return {
-      data: null,
-      pagination: null,
-      isLoading: false,
-      error: new Error('Organization slug is required'),
-      isError: true,
-      refetch: () => Promise.resolve({ data: null }),
-    };
-  }
-
-  if (!id) {
-    return {
-      data: null,
-      pagination: null,
-      isLoading: false,
-      error: new Error('ID is required for useModelAudit'),
-      isError: true,
-      refetch: () => Promise.resolve({ data: null }),
-    };
-  }
-
-  return useQuery({
+  return useQuery<QueryResponse<AuditLog>>({
     queryKey: ['modelAudit', model, id, organization, options],
     queryFn: async () => {
       const orgSlug = String(organization).trim();
@@ -515,10 +396,10 @@ export function useModelAudit(model, id, options = {}) {
       const params = new URLSearchParams();
 
       if (options.page) {
-        params.append('page', options.page);
+        params.append('page', String(options.page));
       }
       if (options.perPage || options.per_page) {
-        params.append('per_page', options.perPage || options.per_page);
+        params.append('per_page', String(options.perPage || options.per_page));
       }
 
       const queryString = params.toString();
@@ -528,7 +409,7 @@ export function useModelAudit(model, id, options = {}) {
       const pagination = extractPaginationFromHeaders(response);
 
       return {
-        data: response.data,
+        data: response.data as AuditLog[],
         pagination,
       };
     },

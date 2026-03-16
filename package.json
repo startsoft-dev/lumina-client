@@ -77,6 +77,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^3.2.4",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",
     "cogent-js": "^2.0.0",
