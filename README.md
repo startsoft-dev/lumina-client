@@ -1,15 +1,15 @@
 # @startsoft/lumina
 
-> A comprehensive React library for Laravel backend applications with full CRUD, pagination, soft deletes, and multi-tenant support.
+> A comprehensive React & React Native library for Lumina backend applications with full CRUD, pagination, soft deletes, multi-tenant support, and TypeScript generics.
 
-[![npm version](https://badge.fury.io/js/@rhino%2Fclient.svg)](https://www.npmjs.com/package/@startsoft/lumina)
+[![npm version](https://badge.fury.io/js/@startsoft%2Flumina.svg)](https://www.npmjs.com/package/@startsoft/lumina)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
 ## ✨ Features
 
-- 🔐 **Authentication** - Built-in auth hooks with Laravel Sanctum support
+- 🔐 **Authentication** - Built-in auth hooks with token-based authentication
 - 🏢 **Multi-tenancy** - Organization-based routing and data scoping
 - 📊 **Complete CRUD** - Index, show, create, update, delete operations
 - 🗑️ **Soft Deletes** - Trash, restore, and force delete support
@@ -18,7 +18,9 @@
 - 🔄 **Nested Operations** - Multi-model transactions
 - 📝 **Audit Trails** - Track changes and history
 - ⚡ **React Query** - Built on TanStack Query for caching and state management
-- 📘 **TypeScript** - Full TypeScript support with type definitions
+- 📘 **TypeScript Generics** - Full type safety with `useModelIndex<Post>()` for typed responses and mutations
+- 📱 **Cross-Platform** - Single codebase for React (web) and React Native with pluggable storage/events adapters
+- 🔔 **Toast Notifications** - Built-in `useToast` hook with reducer-based state management
 
 ---
 
@@ -38,10 +40,11 @@ pnpm add @startsoft/lumina
 
 ```tsx
 import { useModelIndex, useModelStore } from '@startsoft/lumina';
+import type { Post } from './types/lumina'; // Auto-generated types
 
 function PostsList() {
-  // Fetch posts with pagination
-  const { data: response, isLoading } = useModelIndex('posts', {
+  // Fetch posts with pagination — fully typed
+  const { data: response, isLoading } = useModelIndex<Post>('posts', {
     page: 1,
     perPage: 20,
     search: 'react',
@@ -52,8 +55,8 @@ function PostsList() {
   const posts = response?.data || [];
   const pagination = response?.pagination;
 
-  // Create new post
-  const createPost = useModelStore('posts');
+  // Create new post — typed input
+  const createPost = useModelStore<Post>('posts');
 
   const handleCreate = () => {
     createPost.mutate({
@@ -89,15 +92,9 @@ function PostsList() {
 
 ## 📚 Documentation
 
-- **[Getting Started](./docs/getting-started.md)** - Installation and setup
-- **[API Reference](./docs/API.md)** - Complete hook documentation
-- **[Features Guide](./docs/features/)** - Detailed feature explanations
-  - [Pagination](./docs/features/pagination.md)
-  - [Soft Deletes](./docs/features/soft-deletes.md)
-  - [Filtering & Search](./docs/features/filtering.md)
-  - [Relationships](./docs/features/relationships.md)
-  - [Nested Operations](./docs/features/nested-operations.md)
-- **[Examples](./docs/examples/)** - Real-world usage examples
+For full documentation, guides, and API reference visit:
+
+**[https://startsoft-dev.github.io/lumina-docs/docs/getting-started](https://startsoft-dev.github.io/lumina-docs/docs/getting-started)**
 
 ---
 
@@ -107,19 +104,19 @@ function PostsList() {
 
 | Hook | Purpose |
 |------|---------|
-| `useModelIndex` | Fetch list of models with pagination, filtering, search |
-| `useModelShow` | Fetch single model by ID |
-| `useModelStore` | Create new model |
-| `useModelUpdate` | Update existing model |
-| `useModelDelete` | Soft delete model |
+| `useModelIndex<T>` | Fetch list of models with pagination, filtering, search |
+| `useModelShow<T>` | Fetch single model by ID |
+| `useModelStore<T>` | Create new model |
+| `useModelUpdate<T>` | Update existing model |
+| `useModelDelete<T>` | Soft delete model |
 
 ### Soft Deletes
 
 | Hook | Purpose |
 |------|---------|
-| `useModelTrashed` | Fetch soft-deleted models |
-| `useModelRestore` | Restore soft-deleted model |
-| `useModelForceDelete` | Permanently delete model |
+| `useModelTrashed<T>` | Fetch soft-deleted models |
+| `useModelRestore<T>` | Restore soft-deleted model |
+| `useModelForceDelete<T>` | Permanently delete model |
 
 ### Advanced Features
 
@@ -136,6 +133,7 @@ function PostsList() {
 | `useOrganization` | Current organization slug |
 | `useOwner` | Organization data |
 | `useOrganizationExists` | Validate organization |
+| `useUserRole` | Current user role and `hasRole()` helper |
 
 ### Invitations
 
@@ -147,7 +145,12 @@ function PostsList() {
 | `useCancelInvitation` | Cancel invitation |
 | `useAcceptInvitation` | Accept invitation |
 
-**[View complete API reference →](./docs/API.md)**
+### Utilities
+
+| Hook | Purpose |
+|------|---------|
+| `useToast` | Toast notifications with multi-instance sync |
+| `useModelQuery` | Deprecated alias for `useModelIndex` |
 
 ---
 
@@ -155,18 +158,19 @@ function PostsList() {
 
 Built with modern technologies:
 
-- **React 19** - Latest React features and performance
+- **React 18/19** - Supports both React 18 and 19
+- **React Native** - Cross-platform with pluggable storage and events adapters
 - **TanStack Query 5** - Powerful data fetching and caching
 - **Axios** - HTTP client with interceptors
-- **TypeScript** - Full type safety
+- **TypeScript** - Full type safety with generics on all hooks
 
 ### Design Principles
 
 - **Composable** - Small, focused hooks that work together
-- **Type-Safe** - Full TypeScript support with IntelliSense
-- **Cached** - Automatic caching and background refetching
-- **Optimized** - Only re-renders when data changes
-- **Laravel-First** - Designed specifically for Laravel backends
+- **Type-Safe** - TypeScript generics (`useModelIndex<Post>()`) with auto-generated types
+- **Cached** - Automatic caching and background refetching via React Query
+- **Cross-Platform** - Same hooks on web and React Native
+- **Backend-Agnostic** - Works with Lumina Laravel, Rails, and AdonisJS servers
 
 ---
 
@@ -174,7 +178,7 @@ Built with modern technologies:
 
 ### Pagination
 
-Automatic pagination metadata extraction from Laravel response headers:
+Automatic pagination metadata extraction from response headers:
 
 ```tsx
 const { data: response } = useModelIndex('posts', {
@@ -262,9 +266,9 @@ nestedOps.mutate({
 
 ## 🔧 Requirements
 
-- **React:** 18.0.0 or higher
+- **React:** 18.0.0 or higher (supports React 19)
 - **Node.js:** 18.0.0 or higher
-- **Laravel Backend:** with [laravel-global-controller](https://github.com/yourusername/laravel-global-controller) package
+- **Backend:** Any Lumina server ([Laravel](https://github.com/startsoft-dev/lumina-server), [Rails](https://github.com/startsoft-dev/lumina-rails-server), or [AdonisJS](https://github.com/startsoft-dev/lumina-adonis-server))
 
 ---
 
@@ -276,14 +280,11 @@ Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for d
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rhino-client.git
-cd rhino-client
+git clone https://github.com/startsoft-dev/lumina-client.git
+cd lumina-client
 
 # Install dependencies
 npm install
-
-# Run development server
-npm run dev
 
 # Build library
 npm run build
@@ -296,28 +297,13 @@ npm test
 
 ## 📄 License
 
-MIT © [Your Name]
-
-See [LICENSE](./LICENSE) for more information.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
 ## 🔗 Links
 
-- [Documentation](./docs/)
+- [Documentation](https://startsoft-dev.github.io/lumina-docs/docs/getting-started)
 - [Changelog](./CHANGELOG.md)
-- [Issues](https://github.com/yourusername/rhino-client/issues)
-- [Laravel Backend Package](https://github.com/yourusername/laravel-global-controller)
+- [Issues](https://github.com/startsoft-dev/lumina-client/issues)
 - [npm Package](https://www.npmjs.com/package/@startsoft/lumina)
-
----
-
-## 🙏 Acknowledgments
-
-Inspired by the [Rhino Framework](https://rhino-framework.com) for Rails. Built to bring the same powerful patterns to Laravel + React applications.
-
----
-
-<p align="center">
-  Made with ❤️ for the Laravel community
-</p>
