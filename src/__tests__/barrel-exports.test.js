@@ -86,3 +86,29 @@ describe('useAuth re-export', () => {
     expect(mod.useAuth).toBeTypeOf('function');
   });
 });
+
+// ------------------------------------------------------------------
+// Regression: initStorage must be exported from barrel (Bug 5)
+// ------------------------------------------------------------------
+
+describe('initStorage barrel export', () => {
+  it('should export initStorage from main entry point', async () => {
+    const mod = await import('../index');
+    expect(mod.initStorage).toBeTypeOf('function');
+  });
+
+  it('should export initStorage from lib barrel', async () => {
+    const mod = await import('../lib/index');
+    expect(mod.initStorage).toBeTypeOf('function');
+  });
+
+  it('should export initStorage from storage module', async () => {
+    const mod = await import('../lib/storage');
+    expect(mod.initStorage).toBeTypeOf('function');
+  });
+
+  it('initStorage should resolve without error (no-op on web)', async () => {
+    const mod = await import('../lib/storage');
+    await expect(mod.initStorage()).resolves.toBeUndefined();
+  });
+});

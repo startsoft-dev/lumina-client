@@ -54,4 +54,15 @@ describe('cogent wrapper', () => {
     // auto-init completes.
     expect(typeof MockQueryClass).toBe('function');
   });
+
+  // Regression: cogent-js must be imported from src/ not build/ (Bug 7)
+  // The build/ directory is incomplete (missing Query.js and Parser.js),
+  // so we import from cogent-js/src/index.js to bypass the broken build.
+  it('should import from cogent-js/src/index.js, not cogent-js root', async () => {
+    const { loadCogent, Query } = await import('../lib/cogent');
+    await loadCogent();
+    // If this resolves without error, the import path is correct
+    const q = Query();
+    expect(q).toBeDefined();
+  });
 });
