@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock cogent-js to prevent unhandled rejection from its broken build
-vi.mock('cogent-js', () => {
+vi.mock('cogent-js/src/index.js', () => {
   class Query {
     constructor() {}
   }

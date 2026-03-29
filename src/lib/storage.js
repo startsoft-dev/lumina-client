@@ -15,5 +15,14 @@ export function createWebStorage() {
   };
 }
 
+/**
+ * No-op on web — localStorage is synchronous and requires no initialization.
+ * Provided for cross-platform compatibility with React Native's initStorage().
+ * @returns {Promise<void>}
+ */
+export async function initStorage() {
+  // No-op on web — localStorage is synchronous
+}
+
 /** Default storage instance for web */
 export const storage = createWebStorage();

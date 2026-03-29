@@ -1,5 +1,6 @@
-// Wrapper for cogent-js to handle CommonJS import with Vite
-// Pre-load the module to avoid async issues
+// Wrapper for cogent-js to handle CommonJS import with Vite and Metro.
+// Import from cogent-js/src to avoid the broken build/ directory
+// (build/index.js references ./Query but Query.js is missing from build/).
 let QueryClass = null;
 let loading = false;
 let loadPromise = null;
@@ -7,9 +8,9 @@ let loadPromise = null;
 async function loadCogent() {
   if (QueryClass) return QueryClass;
   if (loading && loadPromise) return loadPromise;
-  
+
   loading = true;
-  loadPromise = import('cogent-js').then((cogent) => {
+  loadPromise = import('cogent-js/src/index.js').then((cogent) => {
     QueryClass = cogent.Query || cogent.default?.Query || cogent.default || cogent;
     loading = false;
     return QueryClass;
@@ -18,7 +19,7 @@ async function loadCogent() {
     loading = false;
     throw err;
   });
-  
+
   return loadPromise;
 }
 

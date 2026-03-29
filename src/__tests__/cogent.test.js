@@ -4,7 +4,7 @@ const MockQueryClass = vi.fn(function (...args) {
   this.args = args;
 });
 
-vi.mock('cogent-js', () => ({
+vi.mock('cogent-js/src/index.js', () => ({
   Query: MockQueryClass,
 }));
 

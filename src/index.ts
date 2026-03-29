@@ -14,7 +14,7 @@ export * from './lib';
 // Re-export context providers
 export { AuthProvider, useAuth } from './context/AuthContext';
 // Re-export storage and events adapters
-export { storage, createWebStorage } from './lib/storage';
+export { storage, createWebStorage, initStorage } from './lib/storage';
 export { events, createWebEvents } from './lib/events';
 
 // Re-export TypeScript types

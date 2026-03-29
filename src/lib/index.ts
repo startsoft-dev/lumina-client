@@ -6,7 +6,7 @@
 export { default as api, configureApi } from './axios';
 
 // Storage & Events adapters
-export { storage, createWebStorage } from './storage';
+export { storage, createWebStorage, initStorage } from './storage';
 export { events, createWebEvents } from './events';
 
 // Utilities
