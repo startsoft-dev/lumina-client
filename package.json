@@ -1,6 +1,6 @@
 {
   "name": "@startsoft/lumina",
-  "version": "0.0.2",
+  "version": "0.9.0",
   "description": "Comprehensive React library for Laravel backends with full CRUD, pagination, soft deletes, and multi-tenant support. Works on web and React Native.",
   "type": "module",
   "main": "./dist/index.js",
